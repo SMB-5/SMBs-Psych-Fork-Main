@@ -1137,15 +1137,12 @@ class PlayState extends MusicBeatState
 			str += ' (${percent}%) - ${ratingFC}';
 		}
 
-		var tempScore:String = 'Score: ${songScore}'
+		var tempScore:String = 'Score: ${FlxStringUtil.formatMoney(songScore, false)}'
 		+ (!instakillOnMiss ? ' | Misses: ${songMisses}' : "")
 		+ ' | Rating: ${str}';
 		// "tempScore" variable is used to prevent another memory leak, just in case
 		// "\n" here prevents the text from being cut off by beat zooms
 		scoreTxt.text = '${tempScore}\n';
-
-		if (!miss && !cpuControlled)
-			doScoreBop();
 
 		callOnScripts('onUpdateScore', [miss]);
 	}
@@ -2862,7 +2859,7 @@ class PlayState extends MusicBeatState
 		combo = 0;
 
 		health -= subtract * healthLoss;
-		if(!practiceMode) songScore -= 10;
+		if(!practiceMode) songScore -= 100;
 		if(!endingSong) songMisses++;
 		totalPlayed++;
 		RecalculateRating(true);
@@ -3007,6 +3004,13 @@ class PlayState extends MusicBeatState
 			combo++;
 			if(combo > 9999) combo = 9999;
 			popUpScore(note);
+			if(!cpuControlled) doScoreBop();
+		}
+		else if(!practiceMode && !cpuControlled && note.parent != null)
+		{
+			var value:Int = Math.floor(10 * FlxMath.bound(note.parent.tail.length, 1, 4) * 1.15 * (note.parent.ratingMod + 1));
+			songScore += value;
+			updateScore();
 		}
 		var gainHealth:Bool = true; // prevent health gain, *if* sustains are treated as a singular note
 		if (guitarHeroSustains && note.isSustainNote) gainHealth = false;
