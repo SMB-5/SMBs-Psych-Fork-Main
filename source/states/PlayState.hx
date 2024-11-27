@@ -37,12 +37,7 @@ import flixel.addons.display.FlxRuntimeShader;
 import openfl.filters.ShaderFilter;
 #end
 
-#if VIDEOS_ALLOWED
-#if (hxCodec >= "3.0.0") import hxcodec.flixel.FlxVideo as VideoHandler;
-#elseif (hxCodec >= "2.6.1") import hxcodec.VideoHandler as VideoHandler;
-#elseif (hxCodec == "2.6.0") import VideoHandler;
-#else import vlc.MP4Handler as VideoHandler; #end
-#end
+import objects.VideoSprite;
 
 import objects.Note.EventNote;
 import objects.*;
@@ -840,47 +835,61 @@ class PlayState extends MusicBeatState
 		char.y += char.positionArray[1];
 	}
 
-	public function startVideo(name:String)
+	public var videoCutscene:VideoSprite = null;
+	public function startVideo(name:String, forMidSong:Bool = false, canSkip:Bool = true, loop:Bool = false, playOnLoad:Bool = true)
 	{
 		#if VIDEOS_ALLOWED
-		inCutscene = true;
+		inCutscene = !forMidSong;
+		canPause = forMidSong;
 
-		var filepath:String = Paths.video(name);
+		var foundFile:Bool = false;
+		var fileName:String = Paths.video(name);
+
 		#if sys
-		if(!FileSystem.exists(filepath))
+		if (FileSystem.exists(fileName))
 		#else
-		if(!OpenFlAssets.exists(filepath))
+		if (OpenFlAssets.exists(fileName))
 		#end
-		{
-			FlxG.log.warn('Couldnt find video file: ' + name);
-			startAndEnd();
-			return;
-		}
+			foundFile = true;
 
-		var video:VideoHandler = new VideoHandler();
-			#if (hxCodec >= "3.0.0")
-			// Recent versions
-			video.play(filepath);
-			video.onEndReached.add(function()
+		if (foundFile)
+		{
+			videoCutscene = new VideoSprite(fileName, forMidSong, canSkip, loop, false);
+
+			// Finish callback
+			if (!forMidSong)
 			{
-				video.dispose();
-				startAndEnd();
-				return;
-			}, true);
-			#else
-			// Older versions
-			video.playVideo(filepath);
-			video.finishCallback = function()
-			{
-				startAndEnd();
-				return;
+				function onVideoEnd()
+				{
+					if (generatedMusic && PlayState.SONG.notes[Std.int(curStep / 16)] != null && !endingSong && !isCameraOnForcedPos)
+					{
+						moveCameraSection();
+						//FlxG.camera.snapToTarget();
+					}
+					videoCutscene = null;
+					canPause = true;
+					inCutscene = false;
+					startAndEnd();
+				}
+				videoCutscene.finishCallback = onVideoEnd;
+				videoCutscene.onSkip = onVideoEnd;
 			}
-			#end
+			add(videoCutscene);
+
+			if (playOnLoad)
+				videoCutscene.play();
+			return videoCutscene;
+		}
+		#if (LUA_ALLOWED || HSCRIPT_ALLOWED)
+		else addTextToDebug("Video not found: " + fileName, FlxColor.RED);
+		#else
+		else FlxG.log.error("Video not found: " + fileName);
+		#end
 		#else
 		FlxG.log.warn('Platform not supported!');
 		startAndEnd();
-		return;
 		#end
+		return null;
 	}
 
 	function startAndEnd()
@@ -1546,6 +1555,7 @@ class PlayState extends MusicBeatState
 				vocals.pause();
 				opponentVocals.pause();
 			}
+			videoCutscene?.pause();
 			FlxTimer.globalManager.forEach(function(tmr:FlxTimer) if(!tmr.finished) tmr.active = false);
 			FlxTween.globalManager.forEach(function(twn:FlxTween) if(!twn.finished) twn.active = false);
 		}
@@ -1564,6 +1574,7 @@ class PlayState extends MusicBeatState
 			{
 				resyncVocals();
 			}
+			videoCutscene?.resume();
 			FlxTimer.globalManager.forEach(function(tmr:FlxTimer) if(!tmr.finished) tmr.active = true);
 			FlxTween.globalManager.forEach(function(twn:FlxTween) if(!twn.finished) twn.active = true);
 
@@ -1575,15 +1586,23 @@ class PlayState extends MusicBeatState
 
 	override public function onFocus():Void
 	{
-		if (health > 0 && !paused) resetRPC(Conductor.songPosition > 0.0);
+		if (!paused)
+		{
+			if (health > 0) resetRPC(Conductor.songPosition > 0.0);
+			videoCutscene?.resume();
+		}
 		super.onFocus();
 	}
 
 	override public function onFocusLost():Void
 	{
-		#if DISCORD_ALLOWED
-		if (health > 0 && !paused && autoUpdateRPC) DiscordClient.changePresence(detailsPausedText, SONG.song + " (" + storyDifficultyText + ")", iconP2.getCharacter());
-		#end
+		if (!paused)
+		{
+			#if DISCORD_ALLOWED
+			if (health > 0 && autoUpdateRPC) DiscordClient.changePresence(detailsPausedText, SONG.song, iconP2.getCharacter());
+			#end
+			videoCutscene?.pause();
+		}
 
 		super.onFocusLost();
 	}
