@@ -2519,6 +2519,11 @@ class PlayState extends MusicBeatState
 		if(daRating.noteSplash && !note.noteSplashData.disabled)
 			spawnNoteSplashOnNote(note);
 
+		if (daRating.name == 'bad' || daRating.name == 'shit')
+		{
+			combo = 0;
+		}
+
 		if(!practiceMode && !cpuControlled) {
 			songScore += score;
 			if(!note.ratingDisabled)
@@ -3042,6 +3047,13 @@ class PlayState extends MusicBeatState
 		else strumPlayAnim(false, Std.int(Math.abs(note.noteData)), Conductor.stepCrochet * 1.25 / 1000 / playbackRate);
 		vocals.volume = 1;
 
+		var char:Character = boyfriend;
+		if(char != gf && combo == 50 && gf != null && gf.animOffsets.exists('cheer'))
+			{
+				gf.playAnim('cheer');
+				gf.specialAnim = true;
+			}
+
 		if(ClientPrefs.data.holdSplash)
 			spawnHoldSplashOnNote(note);
 
@@ -3057,6 +3069,9 @@ class PlayState extends MusicBeatState
 			var value:Int = Math.floor(10 * FlxMath.bound(note.parent.tail.length, 1, 4) * 1.15 * (note.parent.ratingMod + 1));
 			songScore += value;
 			updateScore();
+		}
+		if (note.rating == 'bad' || note.rating == 'shit') {
+			makeGhostNote(note);
 		}
 		var gainHealth:Bool = true; // prevent health gain, *if* sustains are treated as a singular note
 		if (guitarHeroSustains && note.isSustainNote) gainHealth = false;
@@ -3643,4 +3658,20 @@ class PlayState extends MusicBeatState
 		return false;
 	}
 	#end
+
+	function makeGhostNote(note:Note) {
+		var ghost = new Note(note.strumTime, note.noteData, null, note.isSustainNote);
+		ghost.noteType = 'MISSED_NOTE';
+		ghost.multAlpha = note.multAlpha * .5;
+		ghost.mustPress = note.mustPress;
+		ghost.ignoreNote = true;
+		ghost.blockHit = true;
+		notes.add(ghost);
+		ghost.rgbShader.r.saturation = .2;
+		ghost.rgbShader.g.saturation = .2;
+		ghost.rgbShader.b.saturation = .2;
+		ghost.rgbShader.r = ghost.rgbShader.r;
+		ghost.rgbShader.g = ghost.rgbShader.g;
+		ghost.rgbShader.b = ghost.rgbShader.b;
+	}
 }
