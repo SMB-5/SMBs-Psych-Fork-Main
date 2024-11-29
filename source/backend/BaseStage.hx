@@ -6,6 +6,7 @@ import flixel.FlxSubState;
 import backend.MusicBeatState;
 
 import objects.Note.EventNote;
+import objects.Note;
 import objects.Character;
 
 enum Countdown
@@ -64,6 +65,10 @@ class BaseStage extends FlxBasic
 	//main callbacks
 	public function create() {}
 	public function createPost() {}
+	public function startSong() {}
+	public function goodNoteHit(note:Note) {}
+	public function opponentNoteHit(note:Note) {}
+	public function noteMiss(note:Note) {}
 	//public function update(elapsed:Float) {}
 	public function countdownTick(count:Countdown, num:Int) {}
 

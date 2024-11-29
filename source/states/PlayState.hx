@@ -28,6 +28,7 @@ import states.StoryMenuState;
 import states.FreeplayState;
 import states.editors.ChartingState;
 import states.editors.CharacterEditorState;
+import states.stages.objects.ABotSpeaker;
 
 import substates.PauseSubState;
 import substates.GameOverSubstate;
@@ -54,6 +55,15 @@ import psychlua.HScript;
 #if SScript
 import tea.SScript;
 #end
+
+enum NeneState
+{
+	STATE_DEFAULT;
+	STATE_PRE_RAISE;
+	STATE_RAISE;
+	STATE_READY;
+	STATE_LOWER;
+}
 
 /**
  * This is where all the Gameplay stuff happens and is managed
@@ -88,6 +98,8 @@ class PlayState extends MusicBeatState
 		['Sick!', 1], //From 90% to 99%
 		['Perfect!!', 1] //The value on this one isn't used actually, since Perfect is always "1"
 	];
+
+	final VULTURE_THRESHOLD:Float = 0.5;
 
 	//event variables
 	private var isCameraOnForcedPos:Bool = false;
@@ -272,6 +284,8 @@ class PlayState extends MusicBeatState
 	public var startCallback:Void->Void = null;
 	public var endCallback:Void->Void = null;
 
+	var abot:ABotSpeaker;
+
 	override public function create()
 	{
 		//trace('Playback Rate: ' + playbackRate);
@@ -398,10 +412,37 @@ class PlayState extends MusicBeatState
 			case 'school': new states.stages.School(); //Week 6 - Senpai, Roses
 			case 'schoolEvil': new states.stages.SchoolEvil(); //Week 6 - Thorns
 			case 'tank': new states.stages.Tank(); //Week 7 - Ugh, Guns, Stress
+			case 'phillyStreets': new states.stages.PhillyStreets(); //Weekend 1 - Darnell, Lit Up, 2Hot
+			//case 'phillyBlazin': new states.stages.PhillyBlazin(); //Weekend 1 - Blazin
 		}
 
 		if(isPixelStage) {
 			introSoundsSuffix = '-pixel';
+		}
+
+		if (SONG.gfVersion == 'nene')
+		{
+		abot = new ABotSpeaker(gfGroup.x +30, gfGroup.y + 320);
+		updateABotEye(true);
+		add(abot);
+		}
+
+		if(gf != null && SONG.gfVersion == 'nene')
+		{
+			gf.animation.callback = function(name:String, frameNumber:Int, frameIndex:Int)
+			{
+				switch(currentNeneState)
+				{
+					case STATE_PRE_RAISE:
+						if (name == 'danceLeft' && frameNumber >= 14)
+						{
+							animationFinished = true;
+							transitionState();
+						}
+					default:
+						// Ignore.
+				}
+			}
 		}
 
 		add(gfGroup);
@@ -826,6 +867,18 @@ class PlayState extends MusicBeatState
 			if(doPush) initHScript(scriptFile);
 		}
 		#end
+	}
+
+	function updateABotEye(finishInstantly:Bool = false)
+	{
+		if (SONG.gfVersion == 'nene')
+		{
+		if(PlayState.SONG.notes[Std.int(FlxMath.bound(curSection, 0, PlayState.SONG.notes.length - 1))].mustHitSection == true)
+			abot.lookRight();
+		else
+			abot.lookLeft();
+		if(finishInstantly) abot.eyes.anim.curFrame = abot.eyes.anim.length - 1;
+		}
 	}
 
 	public function getLuaObject(tag:String, text:Bool=true):FlxSprite {
@@ -1271,6 +1324,27 @@ class PlayState extends MusicBeatState
 		#end
 		setOnScripts('songLength', songLength);
 		callOnScripts('onSongStart');
+
+		if (SONG.gfVersion == 'nene')
+		{
+		abot.snd = FlxG.sound.music;
+		gf.animation.finishCallback = onNeneAnimationFinished;
+		}
+	}
+	function onNeneAnimationFinished(name:String)
+	{
+		if(!startedCountdown) return;
+		switch(currentNeneState)
+		{
+			case STATE_RAISE, STATE_LOWER:
+				if (name == 'raiseKnife' || name == 'lowerKnife')
+				{
+					animationFinished = true;
+					transitionState();
+				}
+			default:
+				// Ignore.
+		}
 	}
 
 	var debugNum:Int = 0;
@@ -1665,6 +1739,9 @@ class PlayState extends MusicBeatState
 	var freezeCamera:Bool = false;
 	var allowDebugKeys:Bool = true;
 
+	var currentNeneState:NeneState = STATE_DEFAULT;
+	var animationFinished:Bool = false;
+
 	override public function update(elapsed:Float)
 	{
 		if(!inCutscene && !paused && !freezeCamera) {
@@ -1685,6 +1762,10 @@ class PlayState extends MusicBeatState
 
 		setOnScripts('curDecStep', curDecStep);
 		setOnScripts('curDecBeat', curDecBeat);
+
+		if(gf == null || !startedCountdown) return;
+		animationFinished = gf.isAnimationFinished();
+		transitionState();
 
 		if(botplayTxt != null && botplayTxt.visible) {
 			botplaySine += 180 * elapsed;
@@ -1849,6 +1930,55 @@ class PlayState extends MusicBeatState
 		setOnScripts('cameraY', camFollow.y);
 		setOnScripts('botPlay', cpuControlled);
 		callOnScripts('onUpdatePost', [elapsed]);
+	}
+
+	function transitionState()
+	{
+		if (SONG.gfVersion == 'nene')
+		{
+		switch (currentNeneState)
+		{
+			case STATE_DEFAULT:
+				if (health <= VULTURE_THRESHOLD)
+				{
+					currentNeneState = STATE_PRE_RAISE;
+					gf.skipDance = true;
+				}
+			case STATE_PRE_RAISE:
+				if (health > VULTURE_THRESHOLD)
+				{
+					currentNeneState = STATE_DEFAULT;
+					gf.skipDance = false;
+				}
+				else if (animationFinished)
+				{
+					currentNeneState = STATE_RAISE;
+					gf.playAnim('raiseKnife');
+					gf.skipDance = true;
+					gf.danced = true;
+					animationFinished = false;
+				}
+			case STATE_RAISE:
+				if (animationFinished)
+				{
+					currentNeneState = STATE_READY;
+					animationFinished = false;
+				}
+			case STATE_READY:
+				if (health > VULTURE_THRESHOLD)
+				{
+					currentNeneState = STATE_LOWER;
+					gf.playAnim('lowerKnife');
+				}
+			case STATE_LOWER:
+				if (animationFinished)
+				{
+					currentNeneState = STATE_DEFAULT;
+					animationFinished = false;
+					gf.skipDance = false;
+				}
+		}
+		}
 	}
 
 	// Health icon updaters
@@ -3234,6 +3364,7 @@ class PlayState extends MusicBeatState
 
 	override function sectionHit()
 	{
+		updateABotEye();
 		if (SONG.notes[curSection] != null)
 		{
 			if (generatedMusic && !endingSong && !isCameraOnForcedPos)
