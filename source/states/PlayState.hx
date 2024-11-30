@@ -404,8 +404,10 @@ class PlayState extends MusicBeatState
 		switch (curStage)
 		{
 			case 'stage': new states.stages.StageWeek1(); //Week 1
+			case 'backstage': new states.stages.Backstage(); //Week 1 Erect
 			case 'spooky': new states.stages.Spooky(); //Week 2
 			case 'philly': new states.stages.Philly(); //Week 3
+			case 'phillyErect': new states.stages.PhillyErect(); //Week 3 Erect
 			case 'limo': new states.stages.Limo(); //Week 4
 			case 'mall': new states.stages.Mall(); //Week 5 - Cocoa, Eggnog
 			case 'mallEvil': new states.stages.MallEvil(); //Week 5 - Winter Horrorland
