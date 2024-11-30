@@ -23,8 +23,6 @@ class PhillyBlazin extends BaseStage
 	
 	var lightningTimer:Float = 3.0;
 
-	var abot:ABotSpeaker;
-
 	override function create()
 	{
 		FlxTransitionableState.skipNextTransOut = true; //skip the original transition fade
@@ -74,9 +72,6 @@ class PhillyBlazin extends BaseStage
 			additionalLighten.visible = false;
 			add(additionalLighten);
 		}
-
-		abot = new ABotSpeaker(gfGroup.x, gfGroup.y + 550);
-		add(abot);
 		
 		if(ClientPrefs.data.shaders)
 			setupRainShader();
@@ -112,7 +107,7 @@ class PhillyBlazin extends BaseStage
 	
 	override function createPost()
 	{
-		FlxG.camera.focusOn(camFollow.getPosition());
+		//FlxG.camera.focusOn(camFollow.getPosition());
 		FlxG.camera.fade(FlxColor.BLACK, 1.5, true, null, true);
 
 		for (character in boyfriendGroup.members)
@@ -130,7 +125,7 @@ class PhillyBlazin extends BaseStage
 			if(character == null) continue;
 			character.color = 0xFF888888;
 		}
-		abot.color = 0xFF888888;
+		//abot.color = 0xFF888888;
 
 		var unspawnNotes:Array<Note> = cast game.unspawnNotes;
 		for (note in unspawnNotes)
@@ -141,18 +136,13 @@ class PhillyBlazin extends BaseStage
 			note.noAnimation = true;
 			note.noMissAnimation = true;
 		}
-		remove(dadGroup, true);
+		remove(dadGroup);
 		addBehindBF(dadGroup);
 	}
 
 	override function beatHit()
 	{
 		//if(curBeat % 2 == 0) abot.beatHit();
-	}
-	
-	override function startSong()
-	{
-		abot.snd = FlxG.sound.music;
 	}
 
 	function setupRainShader()
@@ -227,7 +217,7 @@ class PhillyBlazin extends BaseStage
 		FlxTween.color(boyfriend, LIGHTNING_FADE_DURATION, 0xFF606060, 0xFFDEDEDE);
 		FlxTween.color(dad, LIGHTNING_FADE_DURATION, 0xFF606060, 0xFFDEDEDE);
 		FlxTween.color(gf, LIGHTNING_FADE_DURATION, 0xFF606060, 0xFF888888);
-		FlxTween.color(abot, LIGHTNING_FADE_DURATION, 0xFF606060, 0xFF888888);
+		//FlxTween.color(abot, LIGHTNING_FADE_DURATION, 0xFF606060, 0xFF888888);
 
 		// Sound
 		FlxG.sound.play(Paths.soundRandom('lightning/Lightning', 1, 3));

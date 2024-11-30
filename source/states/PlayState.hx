@@ -413,7 +413,7 @@ class PlayState extends MusicBeatState
 			case 'schoolEvil': new states.stages.SchoolEvil(); //Week 6 - Thorns
 			case 'tank': new states.stages.Tank(); //Week 7 - Ugh, Guns, Stress
 			case 'phillyStreets': new states.stages.PhillyStreets(); //Weekend 1 - Darnell, Lit Up, 2Hot
-			//case 'phillyBlazin': new states.stages.PhillyBlazin(); //Weekend 1 - Blazin
+			case 'phillyBlazin': new states.stages.PhillyBlazin(); //Weekend 1 - Blazin
 		}
 
 		if(isPixelStage) {
