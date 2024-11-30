@@ -462,6 +462,15 @@ class PhillyStreets extends BaseStage
 					precacheCasing();
 			}
 		}
+		else
+		{
+			switch(songName)
+			{
+				case '2hot':
+				    createCan();
+					precacheCasing();
+			}
+		}
 
 		for (i in 1...5)
 			Paths.sound('shots/shot$i');
